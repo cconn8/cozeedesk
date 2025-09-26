@@ -124,6 +124,7 @@ export class AuthController {
 
   @Post('signup')
   async signup(@Body() signupDto: SignupDto) {
+    console.log('Sign Up controller - data received : ', signupDto);
     const { user, tenant, jwt } = await this.authService.signup(signupDto);
 
     const tenantMetadata = await this.tenantsService.getTenantMetadata(tenant._id);

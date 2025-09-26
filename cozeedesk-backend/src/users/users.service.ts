@@ -10,6 +10,7 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<User[]> {
     const collection = this.databaseService.getUsersCollection();
+    console.log('finding user!');
     return collection.find({ email }).toArray() as Promise<User[]>;
   }
 
@@ -27,6 +28,7 @@ export class UsersService {
     }
 
     const saltRounds = 12;
+
     const passwordHash = await bcrypt.hash(createUserDto.password, saltRounds);
 
     const user: Omit<User, '_id'> = {
