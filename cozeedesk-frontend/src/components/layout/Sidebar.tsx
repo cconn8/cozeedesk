@@ -2,11 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  HomeIcon, 
-  CaseIcon, 
-  CogIcon 
-} from './Icons';
+import { HomeIcon, CaseIcon, CogIcon } from '../ui/Icons';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },

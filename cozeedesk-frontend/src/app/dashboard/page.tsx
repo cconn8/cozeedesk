@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import { Card, CardContent, CardIcon } from '@/components/ui/Card';
 
 interface Tenant {
   id: string;
@@ -38,16 +39,11 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
-                      {tenant.businessName[0]}
-                    </span>
-                  </div>
-                </div>
+          <Card>
+            <CardContent className='flex items-center'>
+                <CardIcon className='bg-green-500'>
+                  {tenant.businessName[0]}
+                </CardIcon>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
@@ -61,21 +57,13 @@ export default function Dashboard() {
                     </dd>
                   </dl>
                 </div>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
-                      🌐
-                    </span>
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
+          <Card>
+            <CardContent className='flex items-center'>
+              <CardIcon className='bg-blue-500'>🌐</CardIcon>
+              <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
                       Subdomain
@@ -83,23 +71,18 @@ export default function Dashboard() {
                     <dd className="text-lg font-medium text-gray-900">
                       {subdomain || 'Not available'}
                     </dd>
+                    <dd className="text-sm text-gray-500">
+                      Plan: {tenant.plan || 'Free'}
+                    </dd>
                   </dl>
                 </div>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-indigo-500 rounded-md flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
-                      📊
-                    </span>
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
+          <Card>
+            <CardContent className='flex items-center'>
+              <CardIcon className='bg-gray-100'>📊</CardIcon>
+              <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
                       Total Cases
@@ -112,9 +95,8 @@ export default function Dashboard() {
                     </dd>
                   </dl>
                 </div>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="bg-white shadow overflow-hidden sm:rounded-md">

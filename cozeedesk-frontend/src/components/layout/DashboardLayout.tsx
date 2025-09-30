@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
+import { Button } from '../ui';
 
 interface User {
   id: string;
@@ -70,12 +71,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <span className="text-sm text-gray-700">
                   {user.firstName} {user.lastName}
                 </span>
-                <button
-                  onClick={handleLogout}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-                >
+                <Button onClick={handleLogout}>
                   Logout
-                </button>
+                </Button>
               </div>
             </div>
           </div>
