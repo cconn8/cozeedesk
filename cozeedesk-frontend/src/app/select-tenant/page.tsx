@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Tenant {
   tenantId: string;
@@ -12,6 +13,7 @@ interface Tenant {
 
 export default function SelectTenant() {
   const router = useRouter();
+  const { login } = useAuth();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -49,7 +51,8 @@ export default function SelectTenant() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('jwt', data.jwt);
+        // Use the login function from AuthContext which stores as 'token'
+        login(data.jwt);
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('tenant', JSON.stringify(data.tenant));
         localStorage.setItem('subdomain', data.subdomain);
@@ -74,7 +77,7 @@ export default function SelectTenant() {
             Select Your Organization
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Choose which organization you'd like to access
+            Choose which organization you&apos;d like to access
           </p>
         </div>
         

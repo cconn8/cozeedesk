@@ -1,1 +1,0 @@
-- Error handling : User email already exists (notify on frontend / rather thatn Internal Server Error)

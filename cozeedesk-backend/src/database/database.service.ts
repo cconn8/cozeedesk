@@ -60,4 +60,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   getTenantsCollection(): Collection {
     return this.getMasterDb().collection('tenants');
   }
+
+  getCollection<T = any>(name: string): Collection<T> {
+    return this.getMasterDb().collection<T>(name);
+  }
 }

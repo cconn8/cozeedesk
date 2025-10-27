@@ -1,3 +1,127 @@
+Recommended Implementation Sequence:
+
+  Phase 1: Static UI (Complete ✅)
+
+  - Create UI components with sample data
+  - Test user interactions (clicking, drawer opening/closing)
+  - Ensure responsive design works
+
+  Phase 2: Backend API (Next Steps)
+
+  Cases API Endpoints Needed:
+  // Backend API structure
+  GET    /api/cases              // List all cases for tenant
+  GET    /api/cases/:id          // Get specific case details
+  POST   /api/cases              // Create new case
+  PUT    /api/cases/:id          // Update case
+  DELETE /api/cases/:id          // Delete case
+  POST   /api/cases/:id/process  // Reprocess document
+
+  Database Schema (MongoDB):
+  // Cases Collection
+  {
+    _id: ObjectId,
+    tenantId: ObjectId,           // Multi-tenant isolation
+    title: String,
+    type: String,                 // 'funeral', 'medical', 'legal', 'invoice'
+    status: String,               // 'new', 'processing', 'completed'
+    originalDocument: {
+      filename: String,
+      url: String,
+      uploadedAt: Date
+    },
+    extractedData: {              // Flexible JSON structure
+      [fieldName]: {
+        value: String,
+        confidence: Number,
+        location: { x: Number, y: Number }  // For document coordinates
+      }
+    },
+    createdAt: Date,
+    updatedAt: Date,
+    createdBy: ObjectId,          // User who created case
+    lastModifiedBy: ObjectId
+  }
+
+  Phase 3: API Integration
+
+  Replace sample data with real API calls:
+  // In cases page
+  useEffect(() => {
+    async function fetchCases() {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/cases');
+        const cases = await response.json();
+        setCases(cases);
+      } catch (error) {
+        console.error('Failed to fetch cases:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCases();
+  }, []);
+
+  Phase 4: Document Processing
+
+  File Upload + OCR Integration:
+  // New component: DocumentUpload
+  async function handleFileUpload(file: File, caseType: string) {
+    const formData = new FormData();
+    formData.append('document', file);
+    formData.append('type', caseType);
+
+    const response = await fetch('/api/cases/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    const newCase = await response.json();
+    // Add to cases list and open drawer
+  }
+
+  ---
+  5. Why This Approach Works
+
+  For Learning:
+
+  - Simple Components: Each component has one clear responsibility
+  - Clear Data Flow: Easy to trace how data moves between components
+  - No Complex State: Basic useState for local component state
+  - TypeScript Benefits: Autocomplete and error checking without complexity
+
+  For Scalability:
+
+  - Component Separation: Table and drawer can be modified independently
+  - Props Interface: Easy to add new features without breaking existing code
+  - Sample Data: Can switch to real API without changing component logic
+  - Responsive Design: Works on desktop and mobile
+
+  For Production:
+
+  - Error Handling: Loading and empty states handled
+  - User Experience: Smooth animations and clear feedback
+  - Accessibility: Proper ARIA labels and keyboard navigation
+  - Performance: Only renders what's needed
+
+  ---
+  6. Next Steps
+
+  1. Create Cases API endpoints in your NestJS backend
+  2. Set up file upload handling for documents
+  3. Integrate OpenAI for document processing
+  4. Replace sample data with real API calls
+  5. Add search and filtering functionality
+  6. Implement action modules (Notes, Tasks, etc.)
+
+  This UI foundation gives you a solid base to build the backend against, ensuring the frontend and backend work together
+  seamlessly!
+ 
+ 
+ 
+ 
  1. What I Created
 
   CasesTable Component (/components/cases/CasesTable.tsx)

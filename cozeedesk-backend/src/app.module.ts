@@ -6,7 +6,8 @@ import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { UsersModule } from './users/users.module';
 import { TenantsModule } from './tenants/tenants.module';
-import { JwtService } from '@nestjs/jwt';
+import { CasesModule } from './cases/cases.module';
+import { TemplatesModule } from './templates/templates.module';
 
 @Module({
   imports: [
@@ -18,8 +19,10 @@ import { JwtService } from '@nestjs/jwt';
     AuthModule,
     UsersModule,
     TenantsModule,
+    CasesModule,
+    TemplatesModule,
   ],
   controllers: [AppController],
-  providers: [AppService, JwtService],
+  providers: [AppService],
 })
 export class AppModule {}

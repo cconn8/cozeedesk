@@ -2,16 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HomeIcon, CaseIcon, CogIcon } from '../ui/Icons';
+import { useAuth } from '@/contexts/AuthContext';
+import { HomeIcon } from '../ui/Icons';
+import { Button } from '../ui/Button';
+import { FolderOpen, FileText } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'Cases', href: '/cases', icon: CaseIcon },
-  { name: 'Settings', href: '/settings', icon: CogIcon },
+  { name: 'Cases', href: '/cases', icon: FolderOpen },
+  { name: 'Templates', href: '/templates', icon: FileText },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { user, tenant, logout } = useAuth();
 
   return (
     <div className="flex flex-col w-64 bg-white shadow-lg">
@@ -44,6 +48,27 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="px-4 py-4 border-t border-gray-200">
+        <div className="mb-4">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+            Current Business
+          </p>
+          <p className="text-sm font-medium text-gray-900 mt-1">
+            {tenant?.businessName}
+          </p>
+          <p className="text-xs text-gray-500">
+            {user?.email}
+          </p>
+        </div>
+        <Button
+          onClick={logout}
+          variant="secondary"
+          className="w-full text-sm"
+        >
+          Sign Out
+        </Button>
+      </div>
     </div>
   );
 }

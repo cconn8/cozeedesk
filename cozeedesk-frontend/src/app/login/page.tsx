@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Login() {
   const router = useRouter();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -42,7 +44,8 @@ export default function Login() {
           localStorage.setItem('tenants', JSON.stringify(data.tenants));
           router.push('/select-tenant');
         } else {
-          localStorage.setItem('jwt', data.jwt);
+          // Use the login function from AuthContext which stores as 'token'
+          login(data.jwt);
           localStorage.setItem('user', JSON.stringify(data.user));
           localStorage.setItem('tenant', JSON.stringify(data.tenant));
           localStorage.setItem('subdomain', data.subdomain);
