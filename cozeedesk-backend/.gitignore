@@ -12,6 +12,11 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+# Secrets
+secrets*
+/secrets-ignore
+/secrets-ignore/*
+
 # OS
 .DS_Store
 

@@ -9,13 +9,15 @@ export class TenantsService {
 
   async create(createTenantDto: CreateTenantDto): Promise<Tenant> {
     const collection = this.databaseService.getTenantsCollection();
-    
+
     const subdomain = this.generateSubdomain(createTenantDto.businessName);
     const plan = createTenantDto.plan || 'free';
-    
+
     const existingTenant = await collection.findOne({ subdomain });
     if (existingTenant) {
-      throw new Error('Business name already taken. Please choose a different name.');
+      throw new Error(
+        'Business name already taken. Please choose a different name.',
+      );
     }
 
     const tenant: Omit<Tenant, '_id'> = {
@@ -45,16 +47,20 @@ export class TenantsService {
 
   async getUserTenants(userId: ObjectId): Promise<Tenant[]> {
     const collection = this.databaseService.getTenantsCollection();
-    
+
     const usersCollection = this.databaseService.getUsersCollection();
     const user = await usersCollection.findOne({ _id: userId });
-    
+
     if (!user || !user.tenantMemberships) {
       return [];
     }
 
-    const tenantIds = user.tenantMemberships.map(membership => membership.tenantId);
-    return collection.find({ _id: { $in: tenantIds } }).toArray() as Promise<Tenant[]>;
+    const tenantIds = user.tenantMemberships.map(
+      (membership) => membership.tenantId,
+    );
+    return collection.find({ _id: { $in: tenantIds } }).toArray() as Promise<
+      Tenant[]
+    >;
   }
 
   private generateSubdomain(businessName: string): string {

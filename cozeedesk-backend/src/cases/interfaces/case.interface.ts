@@ -11,6 +11,18 @@ export interface Case {
   templateId?: string;
   extractedFields: Record<string, string>;
   attachments?: { url: string; filename: string }[];
+  // NEW: Extraction-related fields
+  originalScanUrl?: string;
+  status?: 'processing' | 'pending_verification' | 'active' | 'rejected';
+  extractionMetadata?: {
+    confidence?: string;
+    processingTime?: number;
+    pagesProcessed?: number;
+    extractionNotes?: string;
+    lowConfidenceFields?: string[];
+    error?: string;
+  };
+  extractionJobId?: string;
 }
 
 export interface CreateCaseDto {
@@ -22,6 +34,18 @@ export interface CreateCaseDto {
   templateId?: string;
   extractedFields?: Record<string, string>;
   attachments?: { url: string; filename: string }[];
+  // NEW: Extraction-related fields
+  originalScanUrl?: string;
+  status?: 'processing' | 'pending_verification' | 'active' | 'rejected';
+  extractionMetadata?: {
+    confidence?: string;
+    processingTime?: number;
+    pagesProcessed?: number;
+    extractionNotes?: string;
+    lowConfidenceFields?: string[];
+    error?: string;
+  };
+  extractionJobId?: string;
 }
 
 export interface UpdateCaseDto {
@@ -31,4 +55,16 @@ export interface UpdateCaseDto {
   templateId?: string;
   extractedFields?: Record<string, string>;
   attachments?: { url: string; filename: string }[];
+  // NEW: Extraction-related fields
+  originalScanUrl?: string;
+  status?: 'processing' | 'pending_verification' | 'active' | 'rejected';
+  extractionMetadata?: {
+    confidence?: string;
+    processingTime?: number;
+    pagesProcessed?: number;
+    extractionNotes?: string;
+    lowConfidenceFields?: string[];
+    error?: string;
+  };
+  extractionJobId?: string;
 }

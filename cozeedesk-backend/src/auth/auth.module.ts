@@ -8,12 +8,7 @@ import { AuthController } from './auth.controller';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Module({
-  imports: [
-    ConfigModule,
-    UsersModule,
-    TenantsModule,
-    JwtModule.register({}),
-  ],
+  imports: [ConfigModule, UsersModule, TenantsModule, JwtModule.register({})],
   controllers: [AuthController],
   providers: [AuthService, JwtAuthGuard, JwtService],
   exports: [AuthService, JwtAuthGuard, JwtService],

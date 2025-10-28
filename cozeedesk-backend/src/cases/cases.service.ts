@@ -1,7 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { ObjectId } from 'mongodb';
-import { Case, CreateCaseDto, UpdateCaseDto } from './interfaces/case.interface';
+import {
+  Case,
+  CreateCaseDto,
+  UpdateCaseDto,
+} from './interfaces/case.interface';
 
 @Injectable()
 export class CasesService {
@@ -57,7 +61,11 @@ export class CasesService {
     return caseItem;
   }
 
-  async update(id: string, tenantId: string, updateCaseDto: UpdateCaseDto): Promise<Case> {
+  async update(
+    id: string,
+    tenantId: string,
+    updateCaseDto: UpdateCaseDto,
+  ): Promise<Case> {
     const db = await this.databaseService.getTenantDb(tenantId);
     const casesCollection = db.collection<Case>('cases');
 

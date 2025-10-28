@@ -5,13 +5,16 @@ import { Case, CreateCaseRequest, UpdateCaseRequest } from '@/types/case';
 import { CreateTemplateRequest } from '@/types/template';
 import { casesApi } from '@/lib/casesApi';
 import { templatesApi } from '@/lib/templatesApi';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { Search, Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Trash2, Upload, FileCheck, Bell } from 'lucide-react';
 import CaseViewDrawer from '@/components/cases/CaseViewDrawer';
 import CaseModal from '@/components/cases/CaseModal';
 import DeleteConfirmModal from '@/components/cases/DeleteConfirmModal';
+import ScanUploadModal from '@/components/cases/ScanUploadModal';
+import CaseVerificationDrawer from '@/components/cases/CaseVerificationDrawer';
 
 export default function CasesPage() {
   const [cases, setCases] = useState<Case[]>([]);
@@ -24,11 +27,37 @@ export default function CasesPage() {
   const [editCase, setEditCase] = useState<Case | null>(null);
   const [deleteCase, setDeleteCase] = useState<Case | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [verificationCaseId, setVerificationCaseId] = useState<string | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
+
+  // WebSocket for real-time updates
+  const { notifications, clearNotifications, isConnected } = useWebSocket();
 
   useEffect(() => {
     loadCases();
   }, []);
+
+  // Handle WebSocket notifications for real-time updates
+  useEffect(() => {
+    if (notifications.length > 0) {
+      const latestNotification = notifications[notifications.length - 1];
+      
+      // Auto-refresh cases when extraction completes or fails
+      if (latestNotification.type === 'extraction_completed' || 
+          latestNotification.type === 'extraction_failed') {
+        loadCases(searchTerm);
+        
+        // Auto-open verification modal when extraction completes successfully
+        if (latestNotification.type === 'extraction_completed') {
+          // Small delay to ensure cases are reloaded first
+          setTimeout(() => {
+            setVerificationCaseId(latestNotification.caseId);
+          }, 1000);
+        }
+      }
+    }
+  }, [notifications, searchTerm]);
 
   const loadCases = async (search?: string) => {
     try {
@@ -119,6 +148,60 @@ export default function CasesPage() {
     }
   };
 
+  // Handle successful scan upload
+  const handleUploadSuccess = () => {
+    setShowUploadModal(false);
+    loadCases(searchTerm); // Reload cases to show new status
+  };
+
+  // Handle verification completion
+  const handleVerificationComplete = () => {
+    setVerificationCaseId(null);
+    loadCases(searchTerm); // Reload cases to show updated status
+  };
+
+  // Handle payment status change
+  const handlePaymentStatusChange = async (caseId: string, newStatus: string) => {
+    try {
+      await casesApi.updateCase(caseId, { paymentStatus: newStatus });
+      // Update the local state immediately for better UX
+      setCases(prevCases => 
+        prevCases.map(c => 
+          c._id === caseId ? { ...c, paymentStatus: newStatus } : c
+        )
+      );
+    } catch (err) {
+      setError('Failed to update payment status');
+      console.error('Error updating payment status:', err);
+    }
+  };
+
+  // Render status badge
+  const renderStatusBadge = (status?: string) => {
+    if (!status) {
+      return (
+        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+          Active
+        </span>
+      );
+    }
+
+    const statusConfig = {
+      processing: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Processing' },
+      pending_verification: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Needs Review' },
+      active: { bg: 'bg-green-100', text: 'text-green-800', label: 'Active' },
+      rejected: { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active;
+    
+    return (
+      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${config.bg} ${config.text}`}>
+        {config.label}
+      </span>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -136,16 +219,77 @@ export default function CasesPage() {
             Manage your case files and documents
           </p>
         </div>
-        <Button onClick={handleCreateNew} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Create New Case
-        </Button>
+        <div className="flex items-center space-x-3">
+          {/* Connection Status */}
+          <div className="flex items-center space-x-2">
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className="text-xs text-gray-500">
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+          
+          <Button 
+            onClick={() => setShowUploadModal(true)} 
+            variant="secondary" 
+            className="flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Upload Scan
+          </Button>
+          <Button onClick={handleCreateNew} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Create New Case
+          </Button>
+        </div>
       </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
           {error}
         </div>
+      )}
+
+      {/* Real-time Notifications */}
+      {notifications.length > 0 && (
+        <Card className="p-4">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Bell className="w-5 h-5" />
+              Processing Updates
+            </h3>
+            <Button
+              onClick={clearNotifications}
+              variant="secondary"
+              className="text-sm"
+            >
+              Clear All
+            </Button>
+          </div>
+          <div className="space-y-2 max-h-32 overflow-y-auto">
+            {notifications.slice(-3).map((notification, index) => (
+              <div
+                key={`${notification.jobId}-${index}`}
+                className={`p-2 rounded text-sm ${
+                  notification.type === 'extraction_completed'
+                    ? 'bg-green-50 text-green-800 border border-green-200'
+                    : notification.type === 'extraction_failed'
+                    ? 'bg-red-50 text-red-800 border border-red-200'
+                    : 'bg-blue-50 text-blue-800 border border-blue-200'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <span>{notification.message}</span>
+                  <span className="text-xs opacity-70">
+                    Case: {notification.caseId.slice(-6)}
+                  </span>
+                </div>
+                {notification.error && (
+                  <p className="text-xs mt-1 opacity-80">{notification.error}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
 
       <Card className="p-6">
@@ -191,6 +335,9 @@ export default function CasesPage() {
                   Payment Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Created
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -204,7 +351,7 @@ export default function CasesPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {cases.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     {searchTerm ? 'No cases found matching your search.' : 'No cases yet. Create your first case!'}
                   </td>
                 </tr>
@@ -220,14 +367,24 @@ export default function CasesPage() {
                       <div className="text-sm text-gray-900">{caseItem.type}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        caseItem.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                        caseItem.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        caseItem.paymentStatus === 'overdue' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {caseItem.paymentStatus || 'N/A'}
-                      </span>
+                      <select
+                        value={caseItem.paymentStatus || 'pending'}
+                        onChange={(e) => handlePaymentStatusChange(caseItem._id, e.target.value)}
+                        className={`text-xs font-semibold rounded px-2 py-1 border-0 focus:ring-2 focus:ring-blue-500 ${
+                          caseItem.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                          caseItem.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          caseItem.paymentStatus === 'overdue' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="paid">Paid</option>
+                        <option value="overdue">Overdue</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {renderStatusBadge(caseItem.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(caseItem.createdAt).toLocaleDateString()}
@@ -244,6 +401,15 @@ export default function CasesPage() {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
+                        {caseItem.status === 'pending_verification' && (
+                          <button
+                            onClick={() => setVerificationCaseId(caseItem._id)}
+                            className="text-orange-600 hover:text-orange-900 p-1 rounded"
+                            title="Review Extraction"
+                          >
+                            <FileCheck className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleEdit(caseItem)}
                           className="text-gray-600 hover:text-gray-900 p-1 rounded"
@@ -300,6 +466,21 @@ export default function CasesPage() {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteCase(null)}
         loading={modalLoading}
+      />
+
+      {/* Scan Upload Modal */}
+      <ScanUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onSuccess={handleUploadSuccess}
+      />
+
+      {/* Case Verification Drawer */}
+      <CaseVerificationDrawer
+        caseId={verificationCaseId}
+        isOpen={!!verificationCaseId}
+        onClose={() => setVerificationCaseId(null)}
+        onConfirmed={handleVerificationComplete}
       />
     </div>
   );

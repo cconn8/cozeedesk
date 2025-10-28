@@ -20,9 +20,16 @@ export class TemplatesController {
   constructor(private readonly templatesService: TemplatesService) {}
 
   @Post()
-  create(@Body() createTemplateDto: CreateTemplateDto, @User() user: CurrentUser) {
-    // Ensure tenantId comes from JWT token for security
-    const templateData = { ...createTemplateDto, tenantId: user.tenantId };
+  create(
+    @Body() createTemplateDto: CreateTemplateDto,
+    @User() user: CurrentUser,
+  ) {
+    // Ensure tenantId and createdBy comes from JWT token for security
+    const templateData = { 
+      ...createTemplateDto, 
+      tenantId: user.tenantId,
+      createdBy: user.userId
+    };
     return this.templatesService.create(templateData);
   }
 

@@ -1,18 +1,25 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { ObjectId } from 'mongodb';
-import { CaseTemplate, CreateTemplateDto, UpdateTemplateDto } from './interfaces/template.interface';
+import {
+  CaseTemplate,
+  CreateTemplateDto,
+  UpdateTemplateDto,
+} from './interfaces/template.interface';
 
 @Injectable()
 export class TemplatesService {
   constructor(private databaseService: DatabaseService) {}
 
   async create(createTemplateDto: CreateTemplateDto): Promise<CaseTemplate> {
-    const db = await this.databaseService.getTenantDb(createTemplateDto.tenantId);
+    const db = await this.databaseService.getTenantDb(
+      createTemplateDto.tenantId,
+    );
     const templatesCollection = db.collection<CaseTemplate>('templates');
 
     const newTemplate: CaseTemplate = {
       ...createTemplateDto,
+      createdBy: createTemplateDto.createdBy || 'system',
       createdAt: new Date(),
     };
 
@@ -24,7 +31,10 @@ export class TemplatesService {
     const db = await this.databaseService.getTenantDb(tenantId);
     const templatesCollection = db.collection<CaseTemplate>('templates');
 
-    return templatesCollection.find({ tenantId }).sort({ createdAt: -1 }).toArray();
+    return templatesCollection
+      .find({ tenantId })
+      .sort({ createdAt: -1 })
+      .toArray();
   }
 
   async findOne(id: string, tenantId: string): Promise<CaseTemplate> {
@@ -43,7 +53,11 @@ export class TemplatesService {
     return template;
   }
 
-  async update(id: string, tenantId: string, updateTemplateDto: UpdateTemplateDto): Promise<CaseTemplate> {
+  async update(
+    id: string,
+    tenantId: string,
+    updateTemplateDto: UpdateTemplateDto,
+  ): Promise<CaseTemplate> {
     const db = await this.databaseService.getTenantDb(tenantId);
     const templatesCollection = db.collection<CaseTemplate>('templates');
 

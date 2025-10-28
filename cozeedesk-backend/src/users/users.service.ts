@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { ObjectId } from 'mongodb';
 import * as bcrypt from 'bcrypt';
 import { DatabaseService } from '../database/database.service';
-import { User, CreateUserDto, TenantMembership } from './interfaces/user.interface';
+import {
+  User,
+  CreateUserDto,
+  TenantMembership,
+} from './interfaces/user.interface';
 
 @Injectable()
 export class UsersService {
@@ -21,7 +25,7 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const collection = this.databaseService.getUsersCollection();
-    
+
     const existingUsers = await this.findByEmail(createUserDto.email);
     if (existingUsers.length > 0) {
       throw new Error('User with this email already exists');
@@ -50,7 +54,7 @@ export class UsersService {
     tenantMembership: TenantMembership,
   ): Promise<void> {
     const collection = this.databaseService.getUsersCollection();
-    
+
     await collection.updateOne(
       { _id: userId },
       {

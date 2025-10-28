@@ -6,6 +6,7 @@ export interface CaseTemplate {
   name: string;
   type: string;
   extractedFieldKeys: string[];
+  titleField?: string;
   createdAt: Date;
   createdBy: string;
 }
@@ -15,7 +16,8 @@ export interface CreateTemplateDto {
   name: string;
   type: string;
   extractedFieldKeys: string[];
-  createdBy: string;
+  titleField?: string;
+  createdBy?: string;
 }
 
 export interface UpdateTemplateDto {

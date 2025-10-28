@@ -1,4 +1,4 @@
-import { IsString, IsArray, ArrayNotEmpty } from 'class-validator';
+import { IsString, IsArray, ArrayNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateTemplateDto {
   @IsString()
@@ -12,6 +12,11 @@ export class CreateTemplateDto {
   @IsString({ each: true })
   extractedFieldKeys: string[];
 
+  @IsOptional()
   @IsString()
-  createdBy: string;
+  titleField?: string;
+
+  @IsOptional()
+  @IsString()
+  createdBy?: string;
 }

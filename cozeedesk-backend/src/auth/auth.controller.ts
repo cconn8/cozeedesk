@@ -34,9 +34,10 @@ export class AuthController {
 
       return {
         jwt,
-        subdomain: tenantMetadata?.plan === 'paid' 
-          ? `${tenantMetadata.subdomain}.${this.configService.get('PAID_TENANT_DOMAIN')}`
-          : this.configService.get('FREE_TENANT_DOMAIN'),
+        subdomain:
+          tenantMetadata?.plan === 'paid'
+            ? `${tenantMetadata.subdomain}.${this.configService.get('PAID_TENANT_DOMAIN')}`
+            : this.configService.get('FREE_TENANT_DOMAIN'),
         user: {
           id: user._id,
           email: user.email,
@@ -52,15 +53,13 @@ export class AuthController {
     }
 
     if (tenants.length > 1) {
-      const intermediateToken = await this.authService.generateIntermediateToken(
-        user._id,
-        user.email,
-      );
+      const intermediateToken =
+        await this.authService.generateIntermediateToken(user._id, user.email);
 
       return {
         requiresTenantSelection: true,
         intermediateToken,
-        tenants: tenants.map(tenant => ({
+        tenants: tenants.map((tenant) => ({
           tenantId: tenant.tenantId,
           businessName: tenant.businessName,
           subdomain: tenant.subdomain,
@@ -88,7 +87,7 @@ export class AuthController {
 
     const selectedTenantId = new ObjectId(selectTenantDto.tenantId);
     const membership = user.tenantMemberships.find(
-      m => m.tenantId.toString() === selectTenantDto.tenantId,
+      (m) => m.tenantId.toString() === selectTenantDto.tenantId,
     );
 
     if (!membership) {
@@ -101,13 +100,15 @@ export class AuthController {
       membership.roles,
     );
 
-    const tenantMetadata = await this.tenantsService.getTenantMetadata(selectedTenantId);
+    const tenantMetadata =
+      await this.tenantsService.getTenantMetadata(selectedTenantId);
 
     return {
       jwt,
-      subdomain: tenantMetadata?.plan === 'paid'
-        ? `${tenantMetadata.subdomain}.${this.configService.get('PAID_TENANT_DOMAIN')}`
-        : this.configService.get('FREE_TENANT_DOMAIN'),
+      subdomain:
+        tenantMetadata?.plan === 'paid'
+          ? `${tenantMetadata.subdomain}.${this.configService.get('PAID_TENANT_DOMAIN')}`
+          : this.configService.get('FREE_TENANT_DOMAIN'),
       user: {
         id: user._id,
         email: user.email,
@@ -127,13 +128,16 @@ export class AuthController {
     console.log('Sign Up controller - data received : ', signupDto);
     const { user, tenant, jwt } = await this.authService.signup(signupDto);
 
-    const tenantMetadata = await this.tenantsService.getTenantMetadata(tenant._id);
+    const tenantMetadata = await this.tenantsService.getTenantMetadata(
+      tenant._id,
+    );
 
     return {
       jwt,
-      subdomain: tenantMetadata?.plan === 'paid'
-        ? `${tenantMetadata.subdomain}.${this.configService.get('PAID_TENANT_DOMAIN')}`
-        : this.configService.get('FREE_TENANT_DOMAIN'),
+      subdomain:
+        tenantMetadata?.plan === 'paid'
+          ? `${tenantMetadata.subdomain}.${this.configService.get('PAID_TENANT_DOMAIN')}`
+          : this.configService.get('FREE_TENANT_DOMAIN'),
       user: {
         id: user._id,
         email: user.email,

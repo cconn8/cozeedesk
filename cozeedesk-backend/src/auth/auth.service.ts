@@ -41,19 +41,22 @@ export class AuthService {
 
   async validateLogin(email: string, password: string): Promise<LoginResult> {
     const users = await this.usersService.findByEmail(email);
-    
+
     if (users.length === 0) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const user = users[0];
-    const isPasswordValid = await this.usersService.verifyPassword(user, password);
-    
+    const isPasswordValid = await this.usersService.verifyPassword(
+      user,
+      password,
+    );
+
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tenants = user.tenantMemberships.map(membership => ({
+    const tenants = user.tenantMemberships.map((membership) => ({
       tenantId: membership.tenantId.toString(),
       businessName: membership.businessName,
       subdomain: '', // Will be populated below
@@ -61,7 +64,9 @@ export class AuthService {
     }));
 
     for (const tenant of tenants) {
-      const tenantData = await this.tenantsService.findById(new ObjectId(tenant.tenantId));
+      const tenantData = await this.tenantsService.findById(
+        new ObjectId(tenant.tenantId),
+      );
       if (tenantData) {
         tenant.subdomain = tenantData.subdomain;
       }
@@ -70,7 +75,11 @@ export class AuthService {
     return { user, tenants };
   }
 
-  async generateJWT(userId: ObjectId, tenantId: ObjectId, roles: string[]): Promise<string> {
+  async generateJWT(
+    userId: ObjectId,
+    tenantId: ObjectId,
+    roles: string[],
+  ): Promise<string> {
     const payload: JwtPayload = {
       sub: userId.toString(),
       email: '', // Will be set in controller
@@ -84,17 +93,22 @@ export class AuthService {
     });
   }
 
-  async generateIntermediateToken(userId: ObjectId, email: string): Promise<string> {
+  async generateIntermediateToken(
+    userId: ObjectId,
+    email: string,
+  ): Promise<string> {
     const payload: IntermediateToken = {
       sub: userId.toString(),
       email,
       verified: true,
-      exp: Math.floor(Date.now() / 1000) + (2 * 60), // 2 minutes
+      exp: Math.floor(Date.now() / 1000) + 2 * 60, // 2 minutes
     };
 
     return this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('INTERMEDIATE_TOKEN_SECRET'),
-      expiresIn: this.configService.get<string>('INTERMEDIATE_TOKEN_EXPIRES_IN'),
+      expiresIn: this.configService.get<string>(
+        'INTERMEDIATE_TOKEN_EXPIRES_IN',
+      ),
     });
   }
 
@@ -104,14 +118,16 @@ export class AuthService {
         secret: this.configService.get<string>('INTERMEDIATE_TOKEN_SECRET'),
       });
       return payload;
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid intermediate token');
     }
   }
 
-  async signup(createUserDto: CreateUserDto): Promise<{ user: User; tenant: any; jwt: string }> {
+  async signup(
+    createUserDto: CreateUserDto,
+  ): Promise<{ user: User; tenant: any; jwt: string }> {
     const user = await this.usersService.create(createUserDto);
-    
+
     const tenant = await this.tenantsService.create({
       businessName: createUserDto.businessName,
       ownerId: user._id,

@@ -17,7 +17,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     await this.masterClient?.close();
-    
+
     for (const client of this.tenantClients.values()) {
       await client.close();
     }
@@ -29,7 +29,9 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   async getTenantDb(tenantId: string): Promise<Db> {
     const tenantsCollection = this.getMasterDb().collection('tenants');
-    const tenant = await tenantsCollection.findOne({ _id: new ObjectId(tenantId) });
+    const tenant = await tenantsCollection.findOne({
+      _id: new ObjectId(tenantId),
+    });
 
     if (!tenant) {
       throw new Error(`Tenant ${tenantId} not found`);
@@ -44,7 +46,9 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   private async getDedicatedTenantDb(dbName: string): Promise<Db> {
     if (!this.tenantClients.has(dbName)) {
-      const uri = this.configService.get<string>('MONGODB_URI').replace(/\/[^\/]*\?/, `/${dbName}?`);
+      const uri = this.configService
+        .get<string>('MONGODB_URI')
+        .replace(/\/[^\/]*\?/, `/${dbName}?`);
       const client = new MongoClient(uri);
       await client.connect();
       this.tenantClients.set(dbName, client);
