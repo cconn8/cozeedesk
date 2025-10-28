@@ -13,7 +13,7 @@ export interface Case {
   attachments?: { url: string; filename: string }[];
   // NEW: Extraction-related fields
   originalScanUrl?: string;
-  status?: 'processing' | 'pending_verification' | 'active' | 'rejected';
+  status?: 'processing' | 'pending_verification' | 'active';
   extractionMetadata?: {
     confidence?: string;
     processingTime?: number;
@@ -36,7 +36,7 @@ export interface CreateCaseDto {
   attachments?: { url: string; filename: string }[];
   // NEW: Extraction-related fields
   originalScanUrl?: string;
-  status?: 'processing' | 'pending_verification' | 'active' | 'rejected';
+  status?: 'processing' | 'pending_verification' | 'active';
   extractionMetadata?: {
     confidence?: string;
     processingTime?: number;
@@ -57,7 +57,7 @@ export interface UpdateCaseDto {
   attachments?: { url: string; filename: string }[];
   // NEW: Extraction-related fields
   originalScanUrl?: string;
-  status?: 'processing' | 'pending_verification' | 'active' | 'rejected';
+  status?: 'processing' | 'pending_verification' | 'active';
   extractionMetadata?: {
     confidence?: string;
     processingTime?: number;

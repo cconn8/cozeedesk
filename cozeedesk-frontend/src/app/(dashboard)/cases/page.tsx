@@ -480,7 +480,7 @@ export default function CasesPage() {
         caseId={verificationCaseId}
         isOpen={!!verificationCaseId}
         onClose={() => setVerificationCaseId(null)}
-        onConfirmed={handleVerificationComplete}
+        onSaved={handleVerificationComplete}
       />
     </div>
   );

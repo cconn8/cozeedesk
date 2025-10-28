@@ -17,12 +17,13 @@ import { CasesService } from './cases.service';
 import { CreateCaseDto } from './dto/create-case.dto';
 import { UpdateCaseDto } from './dto/update-case.dto';
 import { ScanUploadDto } from './dto/scan-upload.dto';
-import { ConfirmExtractionDto, RejectExtractionDto } from './dto/confirm-extraction.dto';
+import { UpdateCaseWithExtractionDto } from './dto/update-case-with-extraction.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { User, CurrentUser } from '../auth/decorators/user.decorator';
 import { StorageService } from '../storage/storage.service';
 import { ExtractionQueueService } from '../extraction/services/extraction-queue.service';
 import { FeedbackService } from '../extraction/services/feedback.service';
+import { TemplatesService } from '../templates/templates.service';
 
 @Controller('cases')
 @UseGuards(JwtAuthGuard)
@@ -32,6 +33,7 @@ export class CasesController {
     private readonly storageService: StorageService,
     private readonly extractionQueueService: ExtractionQueueService,
     private readonly feedbackService: FeedbackService,
+    private readonly templatesService: TemplatesService,
   ) {}
 
   @Post()
@@ -144,7 +146,7 @@ export class CasesController {
     const caseRecord = await this.casesService.findOne(id, user.tenantId);
     
     if (caseRecord.status !== 'pending_verification') {
-      throw new BadRequestException('Case is not pending verification');
+      throw new BadRequestException('Case is not ready for verification');
     }
 
     // Get signed URL for original scan (expires in 1 hour)
@@ -167,71 +169,102 @@ export class CasesController {
   }
 
   /**
-   * NEW: Confirm extraction with optional corrections
+   * Save case with extracted data after user verification
+   * Simplified workflow: no accept/reject, just save the final data
    */
-  @Patch(':id/confirm-extraction')
-  async confirmExtraction(
+  @Patch(':id/save-extraction')
+  async saveExtraction(
     @Param('id') id: string,
-    @Body() dto: ConfirmExtractionDto,
+    @Body() dto: UpdateCaseWithExtractionDto,
     @User() user: CurrentUser,
   ) {
+    console.log(`[CasesController:saveExtraction] Processing case ${id} for tenant ${user.tenantId}`);
+    
     const caseRecord = await this.casesService.findOne(id, user.tenantId);
 
-    // Log feedback if corrections were made
-    if (dto.corrections && Object.keys(dto.corrections).length > 0) {
-      await this.feedbackService.logCorrections({
-        caseId: id,
-        tenantId: user.tenantId,
-        userId: user.email,
-        originalExtraction: caseRecord.extractedFields,
-        userCorrections: dto.corrections.extractedFields || dto.corrections,
-      });
+    if (caseRecord.status !== 'pending_verification') {
+      console.log(`[CasesController:saveExtraction] Invalid status: ${caseRecord.status}`);
+      throw new BadRequestException('Case is not ready for saving');
     }
 
-    // Determine the title to use
-    let finalTitle = caseRecord.title; // Use existing suggested title by default
-    if (dto.corrections?.selectedTitleField && dto.corrections?.extractedFields) {
-      const selectedFieldValue = dto.corrections.extractedFields[dto.corrections.selectedTitleField];
-      if (selectedFieldValue) {
-        finalTitle = selectedFieldValue;
+    // Log feedback if corrections were made from original extraction
+    if (dto.extractedFields) {
+      const originalFields = caseRecord.extractedFields || {};
+      const corrections: Record<string, string> = {};
+      
+      // Find fields that were changed
+      Object.keys(dto.extractedFields).forEach(key => {
+        if (dto.extractedFields![key] !== originalFields[key]) {
+          corrections[key] = dto.extractedFields![key];
+        }
+      });
+
+      if (Object.keys(corrections).length > 0) {
+        console.log(`[CasesController:saveExtraction] Logging ${Object.keys(corrections).length} field corrections`);
+        await this.feedbackService.logCorrections({
+          caseId: id,
+          tenantId: user.tenantId,
+          userId: user.email,
+          originalExtraction: originalFields,
+          userCorrections: corrections,
+        });
       }
     }
 
-    // Update case with corrections and activate (following Phase 1 update pattern)
+    // Create template if requested
+    if (dto.saveAsTemplate && dto.extractedFields) {
+      console.log(`[CasesController:saveExtraction] Creating template: ${dto.saveAsTemplate.name}`);
+      
+      await this.templatesService.create({
+        tenantId: user.tenantId,
+        name: dto.saveAsTemplate.name,
+        type: dto.saveAsTemplate.type,
+        extractedFieldKeys: Object.keys(dto.extractedFields),
+        titleField: dto.saveAsTemplate.titleField,
+        createdBy: user.userId,
+      });
+    }
+
+    // Update case with final data and activate
     const updateData = {
-      extractedFields: dto.corrections?.extractedFields || caseRecord.extractedFields,
-      title: finalTitle,
+      extractedFields: dto.extractedFields || caseRecord.extractedFields,
+      title: dto.title || caseRecord.title,
       status: 'active' as const,
     };
 
+    console.log(`[CasesController:saveExtraction] Activating case with title: ${updateData.title}`);
     await this.casesService.update(id, user.tenantId, updateData);
 
     return {
       success: true,
-      message: 'Case confirmed and activated',
+      message: 'Case saved and activated successfully',
     };
   }
 
   /**
-   * NEW: Reject extraction (user will enter data manually)
+   * Discard extracted data and remove case
+   * This replaces the "reject" functionality with a simple delete
    */
-  @Post(':id/reject-extraction')
-  async rejectExtraction(
+  @Delete(':id/discard')
+  async discardCase(
     @Param('id') id: string,
-    @Body() dto: RejectExtractionDto,
     @User() user: CurrentUser,
   ) {
-    await this.casesService.update(id, user.tenantId, {
-      status: 'rejected' as const,
-      extractionMetadata: {
-        rejectionReason: dto.reason,
-        ...dto.metadata,
-      },
-    });
+    console.log(`[CasesController:discardCase] Discarding case ${id} for tenant ${user.tenantId}`);
+    
+    const caseRecord = await this.casesService.findOne(id, user.tenantId);
+
+    // Only allow discarding of processing or pending_verification cases
+    if (!['processing', 'pending_verification'].includes(caseRecord.status || '')) {
+      throw new BadRequestException('Can only discard cases that are processing or pending verification');
+    }
+
+    // Remove the case entirely
+    await this.casesService.remove(id, user.tenantId);
 
     return {
       success: true,
-      message: 'Extraction rejected. Please use manual entry.',
+      message: 'Case discarded successfully',
     };
   }
 }

@@ -23,7 +23,7 @@ CozeeDesk is a **multi-tenant case management system** with AI-powered document 
 - Process documents in the background with real-time status updates
 - Maintain secure tenant isolation
 
-**Key Value Proposition**: Transform manual data entry from scanned documents into automated AI-powered extraction with human verification.
+**Key Value Proposition**: Transform manual data entry from scanned documents into automated AI-powered extraction with streamlined editing and template creation.
 
 ## Technology Stack
 
@@ -110,8 +110,9 @@ cozeedesk/
 - Updates case status based on extraction results
 
 **Key Files**:
-- `cases.controller.ts:71-134` - Document upload and extraction initiation
-- `cases.controller.ts:172-213` - User verification and approval workflow
+- `cases.controller.ts:71-134` - Document upload and extraction initiation  
+- `cases.controller.ts:154-224` - Save extraction with user edits and optional template creation
+- `cases.controller.ts:230-255` - Discard case functionality (replaces rejection)
 - `cases.service.ts` - CRUD operations for cases
 
 #### 3. Extraction Module (`src/extraction/`)
@@ -240,7 +241,26 @@ Tenant Databases:
 **Key Features**:
 - File upload with drag-and-drop support (`react-dropzone`)
 - Real-time extraction status updates
-- Document verification and correction workflows
+- Simplified verification workflow with editing capabilities
+
+#### 5. CaseVerificationDrawer (Completely Redesigned)
+**Purpose**: Streamlined interface for editing AI-extracted data and finalizing cases.
+
+**Key Features**:
+- **Side-by-side layout**: Original document view + editable fields
+- **Inline editing**: Direct field modification with add/remove capabilities
+- **Smart title selection**: Choose case title from extracted fields or enter manually
+- **Three-action workflow**:
+  - **Save Case**: Activate case with current data
+  - **Save as Template**: Create reusable template + activate case
+  - **Discard**: Remove case entirely if unusable
+- **Visual feedback**: Highlight low-confidence fields from AI extraction
+- **Strategic logging**: All user interactions logged for debugging and AI improvement
+
+**Removed Complexity**:
+- No more Accept/Reject workflow confusion
+- No separate confirmation/rejection dialogs
+- No complex correction tracking between states
 
 ## Data Flow Diagrams
 
@@ -298,10 +318,21 @@ sequenceDiagram
     WS-->>F: Real-time notification
     F-->>U: Show verification interface
     
-    U->>F: Approve/correct extraction
-    F->>API: POST /cases/:id/confirm-extraction
-    API->>DB: Update case (status: active)
-    API-->>F: Case activated
+    U->>F: Edit extracted data
+    
+    alt Save Case
+        F->>API: PATCH /cases/:id/save-extraction
+        API->>DB: Update case (status: active)
+        API-->>F: Case saved and activated
+    else Save as Template
+        F->>API: PATCH /cases/:id/save-extraction (with template data)
+        API->>DB: Create template + Update case (status: active)
+        API-->>F: Template created, case activated
+    else Discard Case
+        F->>API: DELETE /cases/:id/discard
+        API->>DB: Remove case entirely
+        API-->>F: Case discarded
+    end
 ```
 
 ### 3. Multi-Tenant Data Isolation
@@ -365,7 +396,7 @@ graph TD
   tenantId: string,  // For shared mode
   title: string,
   type: string,
-  status: 'processing' | 'pending_verification' | 'active' | 'rejected',
+  status: 'processing' | 'pending_verification' | 'active',
   paymentStatus?: string,
   createdAt: Date,
   createdBy: string,
@@ -438,11 +469,16 @@ graph TD
 3. Handle multi-page documents
 4. Generate confidence scores for extracted fields
 
-### Phase 4: User Verification
-1. Present extracted data to user
-2. Highlight low-confidence fields
-3. Allow corrections and manual overrides
-4. Log feedback for model improvement
+### Phase 4: User Editing & Saving
+1. Present extracted data in editable interface
+2. Highlight low-confidence fields for user attention
+3. Allow field editing, removal, and addition of custom fields
+4. Enable case title selection from extracted fields
+5. Provide options to:
+   - **Save Case**: Activate case with current data
+   - **Save as Template**: Create reusable template + activate case
+   - **Discard**: Remove case entirely if extraction is unusable
+6. Log user corrections for AI model improvement
 
 ## Real-time Communication
 
@@ -556,6 +592,55 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3005
 
 ---
 
+## Workflow Simplification Benefits (Updated Architecture)
+
+### What Changed in the Document Processing Workflow
+
+**Previous Workflow (Complex)**:
+1. Upload → AI Extract → Pending Verification → **Accept OR Reject** → Active/Rejected
+2. Accept workflow: Complex corrections tracking, multiple confirmation steps
+3. Reject workflow: Reason entry, feedback collection, case remains in rejected state
+
+**New Workflow (Simplified)**:
+1. Upload → AI Extract → Pending Verification → **Edit & Choose Action**
+2. Three clear actions: **Save**, **Save as Template**, or **Discard**
+3. Direct editing with immediate feedback, no intermediate states
+
+### Benefits for Maintenance and User Experience
+
+1. **Reduced Cognitive Load**: 
+   - Users see 3 clear actions instead of complex accept/reject logic
+   - No confusion about what "reject" vs "accept with corrections" means
+
+2. **Cleaner State Management**:
+   - Only 3 case statuses: `processing` → `pending_verification` → `active`
+   - No `rejected` state that creates orphaned data
+   - Cases are either useful (active) or removed (discarded)
+
+3. **Simplified Codebase**:
+   - Removed `ConfirmExtractionDto` and `RejectExtractionDto` complexity
+   - Replaced with single `UpdateCaseWithExtractionDto`
+   - Fewer API endpoints and less conditional logic
+
+4. **Better Template Integration**:
+   - Template creation is now part of the save workflow
+   - Users can create templates from any successful extraction
+   - No separate template creation steps
+
+5. **Improved Error Handling**:
+   - Failed extractions are simply discarded rather than tracked as "rejected"
+   - Reduces database bloat from unusable cases
+   - Clearer feedback to users about what went wrong
+
+### Code Quality Improvements
+
+- **Strategic Logging**: All user actions logged with `[Component:Function]` format
+- **Comprehensive Documentation**: Every function has JSDoc comments explaining purpose
+- **Single Responsibility**: Each function handles one specific action (save, discard, edit)
+- **Descriptive Naming**: `handleSave()`, `handleDiscard()` vs `handleConfirm()`, `handleReject()`
+
+---
+
 ## Maintenance Guidelines
 
 ### For Mid-Level Developers
@@ -581,4 +666,17 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3005
    - Watch Claude API usage and rate limits
    - Monitor database query performance across tenants
 
-This architecture provides a robust foundation for multi-tenant case management with AI-powered document processing. The modular design allows for easy maintenance and feature expansion while maintaining security and performance standards.
+5. **Simplified Workflow Maintenance**:
+   - **Save Issues**: Debug `saveExtraction()` endpoint and `handleSave()` frontend function
+   - **Discard Issues**: Check `discardCase()` endpoint and database cleanup
+   - **Template Creation**: Verify templates module integration in cases controller
+   - **Status Transitions**: Only 3 valid states - ensure no code references 'rejected' status
+   - **API Endpoints**: New endpoints are `/save-extraction` (PATCH) and `/discard` (DELETE)
+
+### Deprecated Functionality (Removed)
+- `POST /cases/:id/confirm-extraction` - replaced by `PATCH /cases/:id/save-extraction`
+- `POST /cases/:id/reject-extraction` - replaced by `DELETE /cases/:id/discard`
+- `ConfirmExtractionDto` and `RejectExtractionDto` - replaced by `UpdateCaseWithExtractionDto`
+- Case status `'rejected'` - cases are now either active or discarded (deleted)
+
+This simplified architecture provides a more maintainable foundation for multi-tenant case management with AI-powered document processing. The streamlined workflow reduces cognitive load for both users and developers while maintaining all essential functionality.

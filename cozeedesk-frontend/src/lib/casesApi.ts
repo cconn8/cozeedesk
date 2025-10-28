@@ -5,8 +5,7 @@ import {
   UpdateCaseRequest,
   ScanUploadRequest,
   VerificationData,
-  ConfirmExtractionRequest,
-  RejectExtractionRequest
+  SaveExtractionRequest
 } from '@/types/case';
 
 const API_BASE = 'http://localhost:3005';
@@ -96,17 +95,27 @@ export const casesApi = {
     return response.data.data; // Backend returns { success: true, data: {...} }
   },
 
-  // Confirm extraction with any corrections
-  async confirmExtraction(id: string, confirmData: ConfirmExtractionRequest): Promise<void> {
-    await axios.patch(`${API_BASE}/cases/${id}/confirm-extraction`, confirmData, {
+  /**
+   * Save extracted data after user verification and editing
+   * Replaces the complex accept/reject workflow with simple save/discard
+   */
+  async saveExtraction(id: string, saveData: SaveExtractionRequest): Promise<void> {
+    console.log(`[casesApi:saveExtraction] Saving case ${id} with data:`, saveData);
+    
+    await axios.patch(`${API_BASE}/cases/${id}/save-extraction`, saveData, {
       headers: getAuthHeaders(),
     });
     // Backend returns { success: true, message: '...' }
   },
 
-  // Reject extraction and provide feedback
-  async rejectExtraction(id: string, rejectData: RejectExtractionRequest): Promise<void> {
-    await axios.post(`${API_BASE}/cases/${id}/reject-extraction`, rejectData, {
+  /**
+   * Discard the extracted data and remove the case entirely
+   * This replaces the "reject" functionality
+   */
+  async discardCase(id: string): Promise<void> {
+    console.log(`[casesApi:discardCase] Discarding case ${id}`);
+    
+    await axios.delete(`${API_BASE}/cases/${id}/discard`, {
       headers: getAuthHeaders(),
     });
   },

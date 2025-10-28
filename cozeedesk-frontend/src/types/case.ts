@@ -11,7 +11,7 @@ export interface Case {
   attachments?: { url: string; filename: string }[];
   // Extraction fields
   originalScanUrl?: string;
-  status?: 'processing' | 'pending_verification' | 'active' | 'rejected';
+  status?: 'processing' | 'pending_verification' | 'active';
   extractionJobId?: string;
   extractionMetadata?: {
     confidence?: string;
@@ -61,11 +61,13 @@ export interface VerificationData {
   };
 }
 
-export interface ConfirmExtractionRequest {
-  corrections?: any;
-}
-
-export interface RejectExtractionRequest {
-  reason: string;
-  fieldFeedback?: Record<string, string>;
+// Simplified interface for saving extracted data after user verification
+export interface SaveExtractionRequest {
+  title?: string;
+  extractedFields?: Record<string, string>;
+  saveAsTemplate?: {
+    name: string;
+    type: string;
+    titleField?: string;
+  };
 }
